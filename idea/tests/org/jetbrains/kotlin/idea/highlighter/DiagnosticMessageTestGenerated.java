@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2015 JetBrains s.r.o.
+ * Copyright 2010-2016 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -62,6 +62,12 @@ public class DiagnosticMessageTestGenerated extends AbstractDiagnosticMessageTes
     @TestMetadata("cannotOverrideInvisibleMember.kt")
     public void testCannotOverrideInvisibleMember() throws Exception {
         String fileName = KotlinTestUtils.navigationMetadata("idea/testData/diagnosticMessage/cannotOverrideInvisibleMember.kt");
+        doTest(fileName);
+    }
+
+    @TestMetadata("complexTypeMismatchWithTypeParameters.kt")
+    public void testComplexTypeMismatchWithTypeParameters() throws Exception {
+        String fileName = KotlinTestUtils.navigationMetadata("idea/testData/diagnosticMessage/complexTypeMismatchWithTypeParameters.kt");
         doTest(fileName);
     }
 
@@ -212,6 +218,12 @@ public class DiagnosticMessageTestGenerated extends AbstractDiagnosticMessageTes
     @TestMetadata("typeMismatchWithNothing.kt")
     public void testTypeMismatchWithNothing() throws Exception {
         String fileName = KotlinTestUtils.navigationMetadata("idea/testData/diagnosticMessage/typeMismatchWithNothing.kt");
+        doTest(fileName);
+    }
+
+    @TestMetadata("typeMismatchWithTypeParameters.kt")
+    public void testTypeMismatchWithTypeParameters() throws Exception {
+        String fileName = KotlinTestUtils.navigationMetadata("idea/testData/diagnosticMessage/typeMismatchWithTypeParameters.kt");
         doTest(fileName);
     }
 
