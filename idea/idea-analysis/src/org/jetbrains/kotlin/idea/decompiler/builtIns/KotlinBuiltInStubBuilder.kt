@@ -30,7 +30,6 @@ import org.jetbrains.kotlin.serialization.deserialization.NameResolverImpl
 import org.jetbrains.kotlin.serialization.deserialization.ProtoContainer
 import org.jetbrains.kotlin.serialization.deserialization.TypeTable
 import java.io.ByteArrayInputStream
-import java.io.DataInputStream
 
 class KotlinBuiltInStubBuilder : ClsStubBuilder() {
     override fun getStubVersion() = ClassFileStubBuilder.STUB_VERSION + 2
@@ -43,8 +42,7 @@ class KotlinBuiltInStubBuilder : ClsStubBuilder() {
 
         val stream = ByteArrayInputStream(content.content)
 
-        val dataInput = DataInputStream(stream)
-        val version = BuiltInsBinaryVersion(*(1..dataInput.readInt()).map { dataInput.readInt() }.toIntArray())
+        val version = BuiltInsBinaryVersion.readFrom(stream)
         if (!version.isCompatible()) {
             return createIncompatibleAbiVersionFileStub()
         }

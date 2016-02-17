@@ -37,7 +37,6 @@ import org.jetbrains.kotlin.serialization.ProtoBuf
 import org.jetbrains.kotlin.serialization.builtins.BuiltInsProtoBuf
 import org.jetbrains.kotlin.serialization.deserialization.NameResolverImpl
 import java.io.ByteArrayInputStream
-import java.io.DataInputStream
 
 class KotlinBuiltInDecompiler : ClassFileDecompilers.Full() {
     private val stubBuilder = KotlinBuiltInStubBuilder()
@@ -66,8 +65,7 @@ fun buildDecompiledTextForBuiltIns(builtInFile: VirtualFile): DecompiledText {
 
     val stream = ByteArrayInputStream(builtInFile.contentsToByteArray())
 
-    val dataInput = DataInputStream(stream)
-    val version = BuiltInsBinaryVersion(*(1..dataInput.readInt()).map { dataInput.readInt() }.toIntArray())
+    val version = BuiltInsBinaryVersion.readFrom(stream)
     if (!version.isCompatible()) {
         // TODO: test
         return DecompiledText(
