@@ -16,66 +16,64 @@
 
 package org.jetbrains.kotlin.idea.decompiler.builtIns
 
-import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.compiled.ClsStubBuilder
 import com.intellij.psi.impl.compiled.ClassFileStubBuilder
 import com.intellij.psi.stubs.PsiFileStub
 import com.intellij.util.indexing.FileContent
-import org.jetbrains.annotations.TestOnly
 import org.jetbrains.kotlin.builtins.BuiltInSerializerProtocol
+import org.jetbrains.kotlin.builtins.BuiltInsBinaryVersion
 import org.jetbrains.kotlin.builtins.BuiltInsSerializedResourcePaths
 import org.jetbrains.kotlin.idea.decompiler.common.AnnotationLoaderForStubBuilderImpl
 import org.jetbrains.kotlin.idea.decompiler.common.DirectoryBasedClassDataFinder
-import org.jetbrains.kotlin.idea.decompiler.common.toClassProto
-import org.jetbrains.kotlin.idea.decompiler.common.toPackageProto
-import org.jetbrains.kotlin.idea.decompiler.stubBuilder.ClsStubBuilderComponents
-import org.jetbrains.kotlin.idea.decompiler.stubBuilder.createPackageFacadeStub
-import org.jetbrains.kotlin.idea.decompiler.stubBuilder.createTopLevelClassStub
+import org.jetbrains.kotlin.idea.decompiler.stubBuilder.*
 import org.jetbrains.kotlin.name.FqName
-import org.jetbrains.kotlin.psi.stubs.impl.KotlinFileStubImpl
+import org.jetbrains.kotlin.serialization.builtins.BuiltInsProtoBuf
 import org.jetbrains.kotlin.serialization.deserialization.NameResolver
 import org.jetbrains.kotlin.serialization.deserialization.NameResolverImpl
+import org.jetbrains.kotlin.serialization.deserialization.ProtoContainer
 import org.jetbrains.kotlin.serialization.deserialization.TypeTable
 import java.io.ByteArrayInputStream
+import java.io.DataInputStream
 
 class KotlinBuiltInStubBuilder : ClsStubBuilder() {
-    override fun getStubVersion() = ClassFileStubBuilder.STUB_VERSION + 1
+    override fun getStubVersion() = ClassFileStubBuilder.STUB_VERSION + 2
 
     override fun buildFileStub(content: FileContent): PsiFileStub<*>? {
-
-        if (isInternalBuiltInFile(content.file)) return null
-
-        return doBuildFileStub(content)
-    }
-
-    @TestOnly
-    fun doBuildFileStub(content: FileContent): KotlinFileStubImpl? {
         val file = content.file
-        val directory = file.parent!!
-        val nameResolver = readStringTable(directory, LOG) ?: return null
-        val contentAsBytes = content.content
-
-        return when (file.fileType) {
-            KotlinBuiltInPackageFileType -> {
-                val packageProto = contentAsBytes.toPackageProto(BuiltInsSerializedResourcePaths.extensionRegistry)
-                val packageFqName = packageProto.packageFqName(nameResolver)
-                val components = createStubBuilderComponents(file, packageFqName, nameResolver)
-                val context = components.createContext(
-                        nameResolver, packageFqName, TypeTable(packageProto.typeTable)
-                )
-                createPackageFacadeStub(packageProto, packageFqName, context)
-            }
-            KotlinBuiltInClassFileType -> {
-                val classProto = contentAsBytes.toClassProto(BuiltInsSerializedResourcePaths.extensionRegistry)
-                val classId = nameResolver.getClassId(classProto.fqName)
-                val packageFqName = classId.packageFqName
-                val components = createStubBuilderComponents(file, packageFqName, nameResolver)
-                val context = components.createContext(nameResolver, packageFqName, TypeTable(classProto.typeTable))
-                createTopLevelClassStub(classId, classProto, context)
-            }
-            else -> error("Unexpected filetype ${file.fileType}")
+        if (file.fileType != KotlinBuiltInFileType) {
+            error("Unexpected file type ${file.fileType}")
         }
+
+        val stream = ByteArrayInputStream(content.content)
+
+        val dataInput = DataInputStream(stream)
+        val version = BuiltInsBinaryVersion(*(1..dataInput.readInt()).map { dataInput.readInt() }.toIntArray())
+        if (!version.isCompatible()) {
+            return createIncompatibleAbiVersionFileStub()
+        }
+
+        val proto = BuiltInsProtoBuf.BuiltIns.parseFrom(stream, BuiltInsSerializedResourcePaths.extensionRegistry)
+        val nameResolver = NameResolverImpl(proto.strings, proto.qualifiedNames)
+
+        val packageProto = proto.`package`
+        val packageFqName = packageProto.packageFqName(nameResolver)
+        val components = createStubBuilderComponents(file, packageFqName, nameResolver)
+        val context = components.createContext(nameResolver, packageFqName, TypeTable(packageProto.typeTable))
+
+        val fileStub = createFileStub(packageFqName)
+        createCallableStubs(
+                fileStub, context,
+                ProtoContainer.Package(packageFqName, context.nameResolver, context.typeTable, packagePartSource = null),
+                packageProto.functionList, packageProto.propertyList
+        )
+        for (classProto in proto.classList) {
+            val classId = nameResolver.getClassId(classProto.fqName)
+            if (!classId.isNestedClass) {
+                createClassStub(fileStub, classProto, nameResolver, classId, context)
+            }
+        }
+        return fileStub
     }
 
     private fun createStubBuilderComponents(file: VirtualFile, packageFqName: FqName, nameResolver: NameResolver): ClsStubBuilderComponents {
@@ -83,24 +81,4 @@ class KotlinBuiltInStubBuilder : ClsStubBuilder() {
         val annotationLoader = AnnotationLoaderForStubBuilderImpl(BuiltInSerializerProtocol)
         return ClsStubBuilderComponents(finder, annotationLoader, file)
     }
-
-    companion object {
-        val LOG = Logger.getInstance(KotlinBuiltInStubBuilder::class.java)
-    }
-}
-
-fun readStringTable(directory: VirtualFile, log: Logger): NameResolverImpl? {
-    val stringsFileName = "${directory.name}.${BuiltInsSerializedResourcePaths.STRING_TABLE_FILE_EXTENSION}"
-    val stringTableFile = directory.findFileByRelativePath(stringsFileName) ?: return run {
-        log.error("$stringsFileName not found in $directory")
-        null
-    }
-    val nameResolver = try {
-        NameResolverImpl.read(ByteArrayInputStream(stringTableFile.contentsToByteArray(false)))
-    }
-    catch (e: Exception) {
-        log.error("Error reading data from $stringTableFile ", e)
-        null
-    }
-    return nameResolver
 }
