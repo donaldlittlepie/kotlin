@@ -16,66 +16,25 @@
 
 package org.jetbrains.kotlin.diagnostics.rendering
 
-import org.jetbrains.kotlin.descriptors.ClassDescriptor
-import org.jetbrains.kotlin.descriptors.ClassifierDescriptor
-import org.jetbrains.kotlin.descriptors.TypeParameterDescriptor
+import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
 import org.jetbrains.kotlin.renderer.DescriptorRenderer
-import org.jetbrains.kotlin.renderer.NameShortness
-import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameUnsafe
 import org.jetbrains.kotlin.types.KotlinType
-import org.jetbrains.kotlin.types.typeUtil.contains
-import java.util.*
 
 class SmartTypeRenderer(private val baseRenderer: DescriptorRenderer) : DiagnosticParameterRenderer<KotlinType> {
     override fun render(obj: KotlinType, renderingContext: RenderingContext): String {
-
-        val adaptiveRenderer = renderingContext.compute(KEY) { objects ->
-            baseRenderer.withOptions {
-                nameShortness = AdaptiveNameShortness(collectMentionedClassifiers(objects))
-            }
+        val adaptiveRenderer = baseRenderer.withOptions {
+            nameShortness = renderingContext.adaptiveNameShortness
         }
-
         return adaptiveRenderer.renderType(obj)
     }
+}
 
-    private class AdaptiveNameShortness(mentionedClassifiers: Set<ClassifierDescriptor>) : NameShortness {
-        private val byName = mentionedClassifiers.groupBy { it.name }
-
-        override fun renderClassifier(classifier: ClassifierDescriptor, renderer: DescriptorRenderer): String {
-            //TODO_R: deal with it
-            val uniqueName = (byName[classifier.name]?.size ?: 0) == 1
-            return when {
-                uniqueName -> NameShortness.SHORT.renderClassifier(classifier, renderer)
-                classifier is ClassDescriptor -> NameShortness.FULLY_QUALIFIED.renderClassifier(classifier, renderer)
-                classifier is TypeParameterDescriptor -> with (renderer) {
-                    "${renderName(classifier.name)} ${renderMessage("(defined in ${renderFqName(classifier.containingDeclaration.fqNameUnsafe)})")}"
-                }
-                else -> error("Unexpected classifier: ${classifier.javaClass}")
-            }
+class SmartDescriptorRenderer(private val baseRenderer: DescriptorRenderer) : DiagnosticParameterRenderer<DeclarationDescriptor> {
+    override fun render(obj: DeclarationDescriptor, renderingContext: RenderingContext): String {
+        val adaptiveRenderer = baseRenderer.withOptions {
+            nameShortness = renderingContext.adaptiveNameShortness
         }
-    }
-
-    companion object {
-        private val KEY = RenderingContext.Key<DescriptorRenderer>("ADAPTIVE_TYPE_RENDERER")
+        return adaptiveRenderer.render(obj)
     }
 }
 
-private fun collectMentionedClassifiers(contextObjects: Collection<Any?>): Set<ClassifierDescriptor> {
-    val result = LinkedHashSet<ClassifierDescriptor>()
-
-    fun collectClassifiersFromTypes(objects: Collection<Any?>) {
-        objects.filterIsInstance<KotlinType>().forEach { diagnosticType ->
-            diagnosticType.contains {
-                innerType ->
-                innerType.constructor.declarationDescriptor?.let { result.add(it) }
-                false
-            }
-        }
-    }
-
-    collectClassifiersFromTypes(contextObjects)
-    contextObjects.filterIsInstance<Collection<*>>().forEach {
-        collectClassifiersFromTypes(it)
-    }
-    return result
-}

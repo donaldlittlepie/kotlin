@@ -17,16 +17,18 @@
 package org.jetbrains.kotlin.diagnostics.rendering
 
 sealed class RenderingContext {
-    abstract fun <T> compute(key: Key<T>, computation: (Collection<Any?>) -> T): T
+    abstract operator fun <T> get(key: Key<T>): T
 
-    class Key<T>(val name: String)
+    abstract class Key<T>(val name: String) {
+        abstract fun compute(objectsToRender: Collection<Any?>): T
+    }
 
     class Impl(private val objectsToRender: Collection<Any?>) : RenderingContext() {
         private val data = linkedMapOf<Key<*>, Any?>()
 
-        override fun <T> compute(key: Key<T>, computation: (Collection<Any?>) -> T): T {
+        override fun <T> get(key: Key<T>): T {
             if (!data.containsKey(key)) {
-                val result = computation(objectsToRender)
+                val result = key.compute(objectsToRender)
                 data[key] = result
                 return result
             }
@@ -36,8 +38,8 @@ sealed class RenderingContext {
 
 
     object Empty : RenderingContext() {
-        override fun <T> compute(key: Key<T>, computation: (Collection<Any?>) -> T): T {
-            return computation(emptyList())
+        override fun <T> get(key: Key<T>): T {
+            return key.compute(emptyList())
         }
     }
 
