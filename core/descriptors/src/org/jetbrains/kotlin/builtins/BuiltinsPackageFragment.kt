@@ -33,7 +33,7 @@ class BuiltinsPackageFragment(
         loadResource: (path: String) -> InputStream?
 ) : DeserializedPackageFragment(fqName, storageManager, module, loadResource) {
     private val proto = run {
-        val stream = loadResourceSure(BuiltInsSerializedResourcePaths.getBuiltInsFilePath(fqName))
+        val stream = loadResourceSure(BuiltInSerializerProtocol.getBuiltInsFilePath(fqName))
         val dataInput = DataInputStream(stream)
         val version = BuiltInsBinaryVersion(*(1..dataInput.readInt()).map { dataInput.readInt() }.toIntArray())
 
@@ -46,7 +46,7 @@ class BuiltinsPackageFragment(
             )
         }
 
-        BuiltInsProtoBuf.BuiltIns.parseFrom(stream, BuiltInsSerializedResourcePaths.extensionRegistry)
+        BuiltInsProtoBuf.BuiltIns.parseFrom(stream, BuiltInSerializerProtocol.extensionRegistry)
     }
 
     private val nameResolver = NameResolverImpl(proto.strings, proto.qualifiedNames)

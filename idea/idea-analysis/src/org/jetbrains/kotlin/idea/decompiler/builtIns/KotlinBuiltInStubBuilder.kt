@@ -23,7 +23,6 @@ import com.intellij.util.indexing.FileContent
 import org.jetbrains.kotlin.builtins.BuiltInSerializerProtocol
 import org.jetbrains.kotlin.builtins.BuiltInsBinaryVersion
 import org.jetbrains.kotlin.builtins.BuiltInsClassDataFinder
-import org.jetbrains.kotlin.builtins.BuiltInsSerializedResourcePaths
 import org.jetbrains.kotlin.idea.decompiler.common.AnnotationLoaderForStubBuilderImpl
 import org.jetbrains.kotlin.idea.decompiler.stubBuilder.*
 import org.jetbrains.kotlin.serialization.builtins.BuiltInsProtoBuf
@@ -50,7 +49,7 @@ class KotlinBuiltInStubBuilder : ClsStubBuilder() {
             return createIncompatibleAbiVersionFileStub()
         }
 
-        val proto = BuiltInsProtoBuf.BuiltIns.parseFrom(stream, BuiltInsSerializedResourcePaths.extensionRegistry)
+        val proto = BuiltInsProtoBuf.BuiltIns.parseFrom(stream, BuiltInSerializerProtocol.extensionRegistry)
         val nameResolver = NameResolverImpl(proto.strings, proto.qualifiedNames)
 
         val packageProto = proto.`package`

@@ -18,7 +18,7 @@ package org.jetbrains.kotlin.idea.decompiler.stubBuilder
 
 import com.intellij.testFramework.fixtures.LightCodeInsightFixtureTestCase
 import com.intellij.util.indexing.FileContentImpl
-import org.jetbrains.kotlin.builtins.BuiltInsSerializedResourcePaths
+import org.jetbrains.kotlin.builtins.BuiltInSerializerProtocol
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.idea.decompiler.builtIns.KotlinBuiltInStubBuilder
 import org.jetbrains.kotlin.idea.test.KotlinWithJdkAndRuntimeLightProjectDescriptor
@@ -35,7 +35,7 @@ class BuiltInDecompilerTest : LightCodeInsightFixtureTestCase() {
     private fun doTest(packageFqName: String) {
         val dirInRuntime = findDir(packageFqName, project)
         val kotlinBuiltInsVirtualFile =
-                dirInRuntime.children.single { it.extension == BuiltInsSerializedResourcePaths.BUILTINS_FILE_EXTENSION }
+                dirInRuntime.children.single { it.extension == BuiltInSerializerProtocol.BUILTINS_FILE_EXTENSION }
         val stubTreeFromDecompiler = KotlinBuiltInStubBuilder().buildFileStub(FileContentImpl.createByFile(kotlinBuiltInsVirtualFile))!!
         myFixture.configureFromExistingVirtualFile(kotlinBuiltInsVirtualFile)
 

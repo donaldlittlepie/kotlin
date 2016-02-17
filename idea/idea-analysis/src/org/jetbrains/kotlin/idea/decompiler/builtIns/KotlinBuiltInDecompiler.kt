@@ -20,8 +20,8 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.FileViewProvider
 import com.intellij.psi.PsiManager
 import com.intellij.psi.compiled.ClassFileDecompilers
+import org.jetbrains.kotlin.builtins.BuiltInSerializerProtocol
 import org.jetbrains.kotlin.builtins.BuiltInsBinaryVersion
-import org.jetbrains.kotlin.builtins.BuiltInsSerializedResourcePaths
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
 import org.jetbrains.kotlin.idea.decompiler.KotlinDecompiledFileViewProvider
 import org.jetbrains.kotlin.idea.decompiler.KtDecompiledFile
@@ -78,7 +78,7 @@ fun buildDecompiledTextForBuiltIns(builtInFile: VirtualFile): DecompiledText {
         )
     }
 
-    val proto = BuiltInsProtoBuf.BuiltIns.parseFrom(stream, BuiltInsSerializedResourcePaths.extensionRegistry)
+    val proto = BuiltInsProtoBuf.BuiltIns.parseFrom(stream, BuiltInSerializerProtocol.extensionRegistry)
     val nameResolver = NameResolverImpl(proto.strings, proto.qualifiedNames)
     val packageFqName = proto.`package`.packageFqName(nameResolver)
     val resolver = KotlinBuiltInDeserializerForDecompiler(builtInFile.parent!!, packageFqName, proto, nameResolver)
