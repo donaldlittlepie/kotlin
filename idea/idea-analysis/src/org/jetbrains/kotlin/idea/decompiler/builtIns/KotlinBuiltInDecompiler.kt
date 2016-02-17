@@ -81,7 +81,7 @@ fun buildDecompiledTextForBuiltIns(builtInFile: VirtualFile): DecompiledText {
     val proto = BuiltInsProtoBuf.BuiltIns.parseFrom(stream, BuiltInsSerializedResourcePaths.extensionRegistry)
     val nameResolver = NameResolverImpl(proto.strings, proto.qualifiedNames)
     val packageFqName = proto.`package`.packageFqName(nameResolver)
-    val resolver = KotlinBuiltInDeserializerForDecompiler(builtInFile.parent!!, packageFqName, nameResolver)
+    val resolver = KotlinBuiltInDeserializerForDecompiler(builtInFile.parent!!, packageFqName, proto, nameResolver)
     val declarations = arrayListOf<DeclarationDescriptor>()
     if (proto.hasPackage()) {
         declarations.addAll(resolver.resolveDeclarationsInFacade(packageFqName))
