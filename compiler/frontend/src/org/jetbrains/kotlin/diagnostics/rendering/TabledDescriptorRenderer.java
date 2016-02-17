@@ -26,7 +26,6 @@ import org.jetbrains.kotlin.diagnostics.rendering.TabledDescriptorRenderer.Table
 import org.jetbrains.kotlin.diagnostics.rendering.TabledDescriptorRenderer.TableRenderer.FunctionArgumentsRow;
 import org.jetbrains.kotlin.diagnostics.rendering.TabledDescriptorRenderer.TableRenderer.TableRow;
 import org.jetbrains.kotlin.diagnostics.rendering.TabledDescriptorRenderer.TextRenderer.TextElement;
-import org.jetbrains.kotlin.renderer.DescriptorRenderer;
 import org.jetbrains.kotlin.resolve.calls.inference.constraintPosition.ConstraintPosition;
 import org.jetbrains.kotlin.types.KotlinType;
 
@@ -175,7 +174,7 @@ public class TabledDescriptorRenderer {
                 renderText((TextRenderer) row, result);
             }
             if (row instanceof DescriptorRow) {
-                result.append(DescriptorRenderer.COMPACT.render(((DescriptorRow) row).descriptor));
+                result.append(Renderers.COMPACT.render(((DescriptorRow) row).descriptor, context));
             }
             if (row instanceof FunctionArgumentsRow) {
                 FunctionArgumentsRow functionArgumentsRow = (FunctionArgumentsRow) row;
