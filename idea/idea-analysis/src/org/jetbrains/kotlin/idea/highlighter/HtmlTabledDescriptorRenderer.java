@@ -95,9 +95,10 @@ public class HtmlTabledDescriptorRenderer extends TabledDescriptorRenderer {
     @Override
     protected void renderTable(TableRenderer table, StringBuilder result) {
         if (table.rows.isEmpty()) return;
+
+        RenderingContext context = computeRenderingContext(table);
+
         int rowsNumber = countColumnNumber(table);
-
-
         result.append("<table>");
         for (TableRow row : table.rows) {
             result.append("<tr>");
@@ -112,7 +113,7 @@ public class HtmlTabledDescriptorRenderer extends TabledDescriptorRenderer {
             }
             if (row instanceof FunctionArgumentsRow) {
                 FunctionArgumentsRow functionArgumentsRow = (FunctionArgumentsRow) row;
-                renderFunctionArguments(functionArgumentsRow.receiverType, functionArgumentsRow.argumentTypes, functionArgumentsRow.isErrorPosition, result);
+                renderFunctionArguments(functionArgumentsRow.receiverType, functionArgumentsRow.argumentTypes, functionArgumentsRow.isErrorPosition, result, context);
             }
             result.append("</tr>");
         }
@@ -125,7 +126,8 @@ public class HtmlTabledDescriptorRenderer extends TabledDescriptorRenderer {
             @Nullable KotlinType receiverType,
             @NotNull List<KotlinType> argumentTypes,
             Predicate<ConstraintPosition> isErrorPosition,
-            StringBuilder result
+            StringBuilder result,
+            @NotNull  RenderingContext context
     ) {
         boolean hasReceiver = receiverType != null;
         tdSpace(result);
@@ -135,7 +137,7 @@ public class HtmlTabledDescriptorRenderer extends TabledDescriptorRenderer {
             if (isErrorPosition.apply(RECEIVER_POSITION.position())) {
                 error = true;
             }
-            receiver = "receiver: " + RenderersUtilKt.renderStrong(getTypeRenderer().render(receiverType, RenderingContext.Empty.INSTANCE), error);
+            receiver = "receiver: " + RenderersUtilKt.renderStrong(getTypeRenderer().render(receiverType, context), error);
         }
         td(result, receiver);
         td(result, hasReceiver ? "arguments: " : "");
@@ -152,7 +154,7 @@ public class HtmlTabledDescriptorRenderer extends TabledDescriptorRenderer {
             if (isErrorPosition.apply(VALUE_PARAMETER_POSITION.position(i))) {
                 error = true;
             }
-            String renderedArgument = getTypeRenderer().render(argumentType, RenderingContext.Empty.INSTANCE);
+            String renderedArgument = getTypeRenderer().render(argumentType, context);
 
             tdRight(result, RenderersUtilKt.renderStrong(renderedArgument, error) + (iterator.hasNext() ? RenderersUtilKt.renderStrong(",") : ""));
             i++;

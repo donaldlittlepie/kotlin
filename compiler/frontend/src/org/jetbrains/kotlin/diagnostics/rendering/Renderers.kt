@@ -402,17 +402,18 @@ object Renderers {
         append("\nDescriptor:\n")
         append(inferenceErrorData.descriptor)
         append("\nExpected type:\n")
+        val context = RenderingContext.Empty
         if (TypeUtils.noExpectedType(inferenceErrorData.expectedType)) {
             append(inferenceErrorData.expectedType)
         }
         else {
-            append(RENDER_TYPE.render(inferenceErrorData.expectedType, RenderingContext.Empty))
+            append(RENDER_TYPE.render(inferenceErrorData.expectedType, context))
         }
         append("\nArgument types:\n")
         if (inferenceErrorData.receiverArgumentType != null) {
-            append(RENDER_TYPE.render(inferenceErrorData.receiverArgumentType, RenderingContext.Empty)).append(".")
+            append(RENDER_TYPE.render(inferenceErrorData.receiverArgumentType, context)).append(".")
         }
-        append("(").append(renderTypes(inferenceErrorData.valueArgumentsTypes, RenderingContext.Empty)).append(")")
+        append("(").append(renderTypes(inferenceErrorData.valueArgumentsTypes, context)).append(")")
     }
 
     private val WHEN_MISSING_LIMIT = 7
