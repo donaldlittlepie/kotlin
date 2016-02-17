@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2015 JetBrains s.r.o.
+ * Copyright 2010-2016 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,10 +39,7 @@ import org.jetbrains.kotlin.resolve.calls.model.ResolvedCallImpl
 import org.jetbrains.kotlin.resolve.calls.model.VariableAsFunctionResolvedCallImpl
 import org.jetbrains.kotlin.resolve.calls.results.OverloadResolutionResultsImpl
 import org.jetbrains.kotlin.resolve.calls.results.ResolutionResultsHandler
-import org.jetbrains.kotlin.resolve.calls.tasks.DynamicCallableDescriptors
-import org.jetbrains.kotlin.resolve.calls.tasks.ExplicitReceiverKind
-import org.jetbrains.kotlin.resolve.calls.tasks.TracingStrategy
-import org.jetbrains.kotlin.resolve.calls.tasks.TracingStrategyForInvoke
+import org.jetbrains.kotlin.resolve.calls.tasks.*
 import org.jetbrains.kotlin.resolve.isHiddenInResolution
 import org.jetbrains.kotlin.resolve.scopes.SyntheticScopes
 import org.jetbrains.kotlin.resolve.scopes.receivers.*
@@ -95,6 +92,31 @@ class NewResolveOldInference(
 
         val candidates = towerResolver.runResolve(baseContext, processor, useOrder = kind != CallResolver.ResolveKind.CALLABLE_REFERENCE)
         return convertToOverloadResults(candidates, tracing, context)
+    }
+
+    fun <D : CallableDescriptor> runResolveForGivenCandidates(
+            basicCallContext: BasicCallResolutionContext,
+            tracing: TracingStrategy,
+            candidates: Collection<ResolutionCandidate<D>>
+    ): OverloadResolutionResultsImpl<D> {
+        val resolvedCalls = candidates.mapNotNull {
+            if (it.descriptor.isHiddenInResolution()) return@mapNotNull null
+
+            val candidateTrace = TemporaryBindingTrace.create(basicCallContext.trace, "Context for resolve candidate")
+            val resolvedCall = ResolvedCallImpl.create(it, candidateTrace, tracing, basicCallContext.dataFlowInfoForArguments)
+
+            val callCandidateResolutionContext = CallCandidateResolutionContext.create(
+                    resolvedCall, basicCallContext, candidateTrace, tracing, basicCallContext.call,
+                    null, CandidateResolveMode.FULLY // todo
+            )
+            candidateResolver.performResolutionForCandidateCall(callCandidateResolutionContext, basicCallContext.checkArguments) // todo
+
+            tracing.bindReference(resolvedCall.trace, resolvedCall)
+            tracing.bindResolvedCall(resolvedCall.trace, resolvedCall)
+
+            resolvedCall
+        }
+        return resolutionResultsHandler.computeResultAndReportErrors(basicCallContext, tracing, resolvedCalls)
     }
 
     private fun createResolveProcessor(
