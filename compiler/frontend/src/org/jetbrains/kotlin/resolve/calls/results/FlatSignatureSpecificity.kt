@@ -24,17 +24,17 @@ import org.jetbrains.kotlin.types.*
 import org.jetbrains.kotlin.types.checker.KotlinTypeChecker
 
 interface SpecificityComparisonCallbacks<T> {
-    fun isNotLessSpecificSignature(signature1: FlatSignature<T>, signature2: FlatSignature<T>): Boolean?
+    fun isSignatureNotLessSpecific(signature1: FlatSignature<T>, signature2: FlatSignature<T>): Boolean?
     fun isTypeNotLessSpecific(type1: KotlinType, type2: KotlinType): Boolean?
 }
 
 fun <T> isSignatureNotLessSpecific(
         signature1: FlatSignature<T>,
         signature2: FlatSignature<T>,
-        callHandle: CallHandle,
-        callbacks: SpecificityComparisonCallbacks<T>
+        callbacks: SpecificityComparisonCallbacks<T>,
+        callHandle: CallHandle = CallHandle.NONE
 ): Boolean {
-    callbacks.isNotLessSpecificSignature(signature1, signature2)?.let { return it }
+    callbacks.isSignatureNotLessSpecific(signature1, signature2)?.let { return it }
 
     val typeParameters = signature2.typeParameters
     val constraintSystemBuilder: ConstraintSystem.Builder = ConstraintSystemBuilderImpl()

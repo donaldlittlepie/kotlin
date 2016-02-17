@@ -148,14 +148,14 @@ class OverloadingConflictResolver(private val builtIns: KotlinBuiltIns) {
             call2: FlatSignature<MutableResolvedCall<D>>,
             discriminateGenerics: Boolean
     ): Boolean =
-            isSignatureNotLessSpecific(call1, call2, call1.callHandle(),
-                                       if (discriminateGenerics)
-                                           SpecificityComparisonDiscriminatingGenerics
-                                       else
-                                           DefaultCallSpecificityComparison)
+            isSignatureNotLessSpecific(call1, call2, if (discriminateGenerics)
+                SpecificityComparisonDiscriminatingGenerics
+            else
+                DefaultCallSpecificityComparison,
+                                       call1.callHandle())
 
     private abstract inner class SpecificityComparisonWithNumerics<T> : SpecificityComparisonCallbacks<T> {
-        override fun isNotLessSpecificSignature(signature1: FlatSignature<T>, signature2: FlatSignature<T>): Boolean?
+        override fun isSignatureNotLessSpecific(signature1: FlatSignature<T>, signature2: FlatSignature<T>): Boolean?
                 = null
 
         override fun isTypeNotLessSpecific(type1: KotlinType, type2: KotlinType): Boolean? {
@@ -186,7 +186,7 @@ class OverloadingConflictResolver(private val builtIns: KotlinBuiltIns) {
     private val DefaultDescriptorSpecificityComparison = object : SpecificityComparisonWithNumerics<CallableDescriptor>() {}
 
     private val SpecificityComparisonDiscriminatingGenerics = object : SpecificityComparisonWithNumerics<MutableResolvedCall<*>>() {
-        override fun isNotLessSpecificSignature(
+        override fun isSignatureNotLessSpecific(
                 signature1: FlatSignature<MutableResolvedCall<*>>,
                 signature2: FlatSignature<MutableResolvedCall<*>>
         ): Boolean? {
@@ -260,7 +260,7 @@ class OverloadingConflictResolver(private val builtIns: KotlinBuiltIns) {
 
         val fSignature = FlatSignature.createFromCallableDescriptor(f)
         val gSignature = FlatSignature.createFromCallableDescriptor(g)
-        return isSignatureNotLessSpecific(fSignature, gSignature, CallHandle.NONE, DefaultDescriptorSpecificityComparison)
+        return isSignatureNotLessSpecific(fSignature, gSignature, DefaultDescriptorSpecificityComparison, CallHandle.NONE)
     }
 
     private fun isNotLessSpecificCallableReference(f: CallableDescriptor, g: CallableDescriptor): Boolean =
